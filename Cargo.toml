@@ -1,0 +1,15 @@
+[package]
+name = "keylayout_lang"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chumsky = { version = "1.0.0-alpha.4", features = ["extension", "label", "memoization"] }
+clap = { version = "4.3.17", features = ["derive"] }
+color-eyre = "0.6.2"
+itertools = "0.11.0"
+locspan = { version = "0.7.13", features = ["reporting"] }
+miette = { version = "5.10.0", features = ["fancy"] }
+thiserror = "1.0.44"
