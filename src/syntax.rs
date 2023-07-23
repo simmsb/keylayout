@@ -1,12 +1,36 @@
-use chumsky::span::SimpleSpan as Span;
+use chumsky::span::SimpleSpan;
 use locspan::Spanned;
+use miette::SourceSpan;
 
-pub trait IsToken {
-    const VALUE: &'static str;
+#[derive(Copy, Clone, Debug)]
+pub struct Span(pub SourceSpan);
+
+impl From<SimpleSpan> for Span {
+    fn from(span: SimpleSpan) -> Self {
+        let s = span.start;
+        let e = span.end;
+
+        Self(SourceSpan::new(s.into(), (e - s).into()))
+    }
 }
 
-// struct Layer;
-// struct OpenCurly;
+impl From<&SimpleSpan> for Span {
+    fn from(value: &SimpleSpan) -> Self {
+        Span::from(*value)
+    }
+}
+
+impl Into<SourceSpan> for Span {
+    fn into(self) -> SourceSpan {
+        self.0
+    }
+}
+
+impl Into<SourceSpan> for &Span {
+    fn into(self) -> SourceSpan {
+        self.0
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token<const T: &'static str, S = Span>(pub S);
@@ -22,6 +46,90 @@ impl<'a, S: Copy> Spanned for Ident<'a, S> {
 
     fn span(&self) -> Self::Span {
         self.span
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct File<'a, S = Span> {
+    pub layout: Layout<S>,
+    pub layers: Vec<Layer<'a, S>>,
+    pub span: S,
+}
+
+impl<'a, S: Copy> Spanned for File<'a, S> {
+    type Span = S;
+
+    fn span(&self) -> Self::Span {
+        self.span
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Layout<S = Span> {
+    pub layout_token: Token<"layout", S>,
+    pub left_curly: Token<"{", S>,
+    pub rows: Vec<LayoutRow<S>>,
+    pub right_curly: Token<"}", S>,
+    pub span: S,
+}
+
+impl<S: Copy> Spanned for Layout<S> {
+    type Span = S;
+
+    fn span(&self) -> Self::Span {
+        self.span
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LayoutRow<S = Span> {
+    pub items: Vec<LayoutDefn<S>>,
+    pub semi: Token<";", S>,
+    pub span: S,
+}
+
+impl<S: Copy> Spanned for LayoutRow<S> {
+    type Span = S;
+
+    fn span(&self) -> Self::Span {
+        self.span
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LayoutDefn<S = Span> {
+    Keys {
+        count: u8,
+        k: Token<"k", S>,
+        span: S,
+    },
+    RemappedKey {
+        left_bracket: Token<"[", S>,
+        position: u8,
+        right_bracket: Token<"]", S>,
+        span: S,
+    },
+    Spaces {
+        count: u8,
+        s: Token<"s", S>,
+        span: S,
+    },
+}
+
+impl<'a, S: Copy> Spanned for LayoutDefn<S> {
+    type Span = S;
+
+    fn span(&self) -> Self::Span {
+        match self {
+            LayoutDefn::Keys { count, k, span } => *span,
+            LayoutDefn::RemappedKey {
+                left_bracket,
+                position,
+                right_bracket,
+                span,
+            } => *span,
+            LayoutDefn::Spaces { count, s, span } => *span,
+        }
     }
 }
 
