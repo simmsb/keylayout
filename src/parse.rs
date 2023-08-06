@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use chumsky::{
     combinator::{Map, ToSpan},
     prelude::*,
@@ -8,19 +10,22 @@ use itertools::Itertools;
 use thiserror::Error;
 
 use crate::syntax::{
-    Chord, File, Ident, Key, KeyOrChord, Layer, LayerRow, Layout, LayoutDefn, LayoutRow, PlainKey,
-    Span, Token,
+    Chord, CustomKey, CustomKeyOutput, File, Ident, Key, KeyOrChord, Layer, LayerRow, Layout,
+    LayoutDefn, LayoutRow, PlainKey, Span, Text, Token,
 };
 
 pub fn file<'a>() -> impl Parser<'a, &'a str, File<'a>, extra::Err<Rich<'a, char>>> {
-    layout()
-        .padded()
-        .then(layer().padded().repeated().collect())
-        .map_with_span(|(layout, layers), span| File {
-            layout,
-            layers,
-            span: span.into(),
-        })
+    group((
+        layout(),
+        custom_key().padded().repeated().collect(),
+        layer().padded().repeated().collect(),
+    ))
+    .map_with_span(|(layout, custom_keys, layers), span| File {
+        layout,
+        custom_keys,
+        layers,
+        span: span.into(),
+    })
 }
 
 pub fn layout<'a>() -> impl Parser<'a, &'a str, Layout, extra::Err<Rich<'a, char>>> {
@@ -85,6 +90,48 @@ pub fn layout_defn<'a>() -> impl Parser<'a, &'a str, LayoutDefn, extra::Err<Rich
     );
 
     k.or(s).or(remapped)
+}
+
+pub fn custom_key<'a>() -> impl Parser<'a, &'a str, CustomKey<'a>, extra::Err<Rich<'a, char>>> {
+    group((
+        token::<"key">().padded(),
+        ident().padded(),
+        token::<"{">().padded(),
+        custom_key_output().padded().repeated().collect(),
+        token::<"}">().padded(),
+    ))
+    .map_with_span(
+        |(key_token, name, left_curly, outputs, right_curly), span| CustomKey {
+            key_token,
+            name,
+            left_curly,
+            outputs,
+            right_curly,
+            span: span.into(),
+        },
+    )
+}
+
+pub fn custom_key_output<'a>(
+) -> impl Parser<'a, &'a str, CustomKeyOutput<'a>, extra::Err<Rich<'a, char>>> {
+    group((
+        token::<"out">().padded(),
+        ident().padded(),
+        token::<":">().padded(),
+        text().padded(),
+        token::<";">().padded(),
+    ))
+    .map_with_span(
+        |(out_token, name, colon, output, semi), span| CustomKeyOutput {
+            out_token,
+            name,
+            colon,
+            output,
+            semi,
+            span: span.into(),
+        },
+    )
+    .labelled("custom key output")
 }
 
 pub fn layer<'a>() -> impl Parser<'a, &'a str, Layer<'a>, extra::Err<Rich<'a, char>>> {
@@ -159,6 +206,17 @@ fn key<'a>() -> impl Parser<'a, &'a str, Key<'a>, extra::Err<Rich<'a, char>>> {
 
 fn plainkey<'a>() -> impl Parser<'a, &'a str, PlainKey<'a>, extra::Err<Rich<'a, char>>> {
     let i = ident().map(PlainKey::Named);
+    let l = token::<"[">()
+        .then(ident())
+        .then(token::<"]">())
+        .map_with_span(
+            |((left_square, layer), right_square), span| PlainKey::Layer {
+                left_square,
+                layer,
+                right_square,
+                span: span.into(),
+            },
+        );
     let c = any()
         .delimited_by(just('\''), just('\''))
         .map_with_span(|c, span: SimpleSpan| PlainKey::Char {
@@ -172,7 +230,7 @@ fn plainkey<'a>() -> impl Parser<'a, &'a str, PlainKey<'a>, extra::Err<Rich<'a, 
             span: span.into(),
         });
 
-    i.or(c).or(c2).labelled("plain key")
+    i.or(l).or(c).or(c2).labelled("plain key")
 }
 
 fn token<'a, const T: &'static str>() -> Map<
@@ -190,11 +248,41 @@ fn ident<'a>() -> impl Parser<'a, &'a str, Ident<'a>, extra::Err<Rich<'a, char>>
         .filter(|c: &char| c.is_alphabetic())
         .repeated()
         .at_least(1)
-        .map_slice(|t| t)
+        .slice()
         .map_with_span(|t, s: SimpleSpan| Ident {
             s: t,
             span: s.into(),
         })
+}
+
+fn text<'a>() -> impl Parser<'a, &'a str, Text<'a>, extra::Err<Rich<'a, char>>> {
+    let escape = just('\\').then(choice((just('\\'), just('"')))).ignored();
+
+    let plain_string = none_of("\n\\\"")
+        .ignored()
+        .repeated()
+        .slice()
+        .map(|text| Cow::Borrowed(text));
+    let escaped_string = none_of("\n\\\"")
+        .ignored()
+        .or(escape)
+        .ignored()
+        .repeated()
+        .slice()
+        .map(|text| Cow::Owned(snailquote::unescape(text).unwrap()));
+
+    group((
+        token::<"\"">(),
+        plain_string.or(escaped_string),
+        token::<"\"">(),
+    ))
+    .map_with_span(|(left_quote, text, right_quote), span| Text {
+        left_quote,
+        text,
+        right_quote,
+        span: span.into(),
+    })
+    .labelled("a quoted string")
 }
 
 #[derive(Error, Debug, miette::Diagnostic)]
@@ -255,12 +343,12 @@ pub fn convert_error<'a>(err: Rich<'a, char>) -> ParseError {
         .collect::<Vec<_>>();
 
     match err.reason() {
-        chumsky::error::RichReason::ExpectedFound { expected, found } => {
-            let expected = expected.iter().map(|x| x.to_string()).join(", ");
-            let found = if let Some(m) = found {
-                m.to_string()
+        chumsky::error::RichReason::ExpectedFound { .. } => {
+            let expected = err.expected().map(|x| x.to_string()).join(", ");
+            let found = if let Some(m) = err.found() {
+                format!("{:?}", m.to_string())
             } else {
-                "<nothing>".to_string()
+                "EOF".to_string()
             };
 
             ParseError::UnexpectedInput {

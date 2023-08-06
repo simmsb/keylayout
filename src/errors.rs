@@ -17,6 +17,22 @@ pub enum AppError {
         other_span: Span,
     },
 
+    #[error("Badly positioned chord")]
+    #[diagnostic(
+        code(bad_chord_positioning),
+        help("Chords should be positioned between two normal keys")
+    )]
+    BadChordPositions {
+        #[label("For this to be a valid chord")]
+        bad_chord: Span,
+
+        #[label("There should be a key here")]
+        prev_item: Span,
+
+        #[label("There also needs to be a key here")]
+        next_item: Span,
+    },
+
     #[error("Unknown key: {key}")]
     #[diagnostic(code(unknown_key), help("Try picking a key that exists, huh?"))]
     UnknownKey {
@@ -24,11 +40,5 @@ pub enum AppError {
         span: Span,
 
         key: String,
-    },
-
-    #[error("Chords need to be between two normal keys")]
-    BadChord {
-        #[label("I don't know what to do with this chord")]
-        span: Span,
     },
 }

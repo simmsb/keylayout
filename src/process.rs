@@ -1,26 +1,39 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 
 use locspan::Spanned;
 
 use crate::{
     errors::AppError,
-    syntax::{Layer, Layout, LayoutDefn},
+    syntax::{Chord, KeyOrChord, Layer, Layout, LayoutDefn, Key},
 };
 
-#[derive(Debug)]
+#[derive(Debug, debug3::Debug, Clone, Copy)]
+pub enum KeyAt {
+    Space,
+
+    Located(MatrixPosition),
+}
+
+#[derive(Debug, debug3::Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub struct MatrixPosition(u8, u8);
+
+#[derive(Debug, debug3::Debug)]
 pub struct LayoutMeta {
-    phys_to_matrix: HashMap<(u8, u8), (u8, u8)>,
-    spaces: HashSet<(u8, u8)>,
+    phys_to_matrix: BTreeMap<(u8, u8), KeyAt>,
+    layout_to_matrix: BTreeMap<(u8, u8), KeyAt>,
+    layout_to_phys: BTreeMap<(u8, u8), (u8, u8)>,
 }
 
 impl LayoutMeta {
     pub fn process(layout: &Layout) -> miette::Result<Self> {
-        let mut spaces = HashSet::new();
-        let mut phys_to_matrix = HashMap::new();
-        let mut matrix_to_key: HashMap<(u8, u8), &LayoutDefn> = HashMap::new();
+        let mut phys_to_matrix = BTreeMap::new();
+        let mut layout_to_matrix = BTreeMap::new();
+        let mut layout_to_phys = BTreeMap::new();
+        let mut matrix_to_key: BTreeMap<(u8, u8), &LayoutDefn> = BTreeMap::new();
 
         for (y, row) in layout.rows.iter().enumerate() {
             let mut x = 0;
+            let mut x_l = 0;
             for defn in &row.items {
                 match defn {
                     crate::syntax::LayoutDefn::Keys { count, k: _, span } => {
@@ -34,10 +47,16 @@ impl LayoutMeta {
                                 .into());
                             }
 
-                            phys_to_matrix.insert(pos, pos);
+                            phys_to_matrix
+                                .insert(pos, KeyAt::Located(MatrixPosition(pos.0, pos.1)));
+                            let pos_l = (x_l + n, y as u8);
+                            layout_to_matrix
+                                .insert(pos_l, KeyAt::Located(MatrixPosition(pos.0, pos.1)));
+                            layout_to_phys.insert(pos_l, pos);
                         }
 
                         x += count;
+                        x_l += count;
                     }
                     crate::syntax::LayoutDefn::RemappedKey {
                         left_bracket: _,
@@ -56,15 +75,24 @@ impl LayoutMeta {
                             .into());
                         }
 
-                        phys_to_matrix.insert(phys_pos, matr_pos);
+                        phys_to_matrix.insert(
+                            phys_pos,
+                            KeyAt::Located(MatrixPosition(matr_pos.0, matr_pos.1)),
+                        );
+                        let pos_l = (x_l, y as u8);
+                        layout_to_matrix.insert(
+                            pos_l,
+                            KeyAt::Located(MatrixPosition(matr_pos.0, matr_pos.1)),
+                        );
+                        layout_to_phys.insert(pos_l, phys_pos);
 
                         x += 1;
+                        x_l += 1;
                     }
                     crate::syntax::LayoutDefn::Spaces { count, s: _, span } => {
                         for n in 0..*count {
                             let pos = (x + n, y as u8);
-                            phys_to_matrix.insert(pos, pos);
-                            spaces.insert(pos);
+                            phys_to_matrix.insert(pos, KeyAt::Space);
                         }
 
                         x += count;
@@ -75,20 +103,21 @@ impl LayoutMeta {
 
         Ok(LayoutMeta {
             phys_to_matrix,
-            spaces,
+            layout_to_matrix,
+            layout_to_phys,
         })
     }
 }
 
-#[derive(Debug)]
-pub struct LayersMeta {
-    layer_map: HashMap<String, usize>,
-    layers: Vec<LayerMeta>,
+#[derive(Debug, debug3::Debug)]
+pub struct LayersMeta<'a> {
+    layer_map: BTreeMap<String, usize>,
+    layers: Vec<LayerMeta<'a>>,
 }
 
-impl LayersMeta {
-    pub fn process<'a>(layers: &[Layer<'a>]) -> miette::Result<Self> {
-        let mut layer_map = HashMap::new();
+impl<'a> LayersMeta<'a> {
+    pub fn process(layout_meta: &LayoutMeta, layers: &[Layer<'a>]) -> miette::Result<Self> {
+        let mut layer_map = BTreeMap::new();
         let mut processed_layers = Vec::new();
 
         for layer in layers {
@@ -96,7 +125,7 @@ impl LayersMeta {
         }
 
         for layer in layers {
-            processed_layers.push(LayerMeta::process(&layer_map, layer)?);
+            processed_layers.push(LayerMeta::process(&layout_meta, &layer_map, layer)?);
         }
 
         Ok(LayersMeta {
@@ -106,14 +135,101 @@ impl LayersMeta {
     }
 }
 
-#[derive(Debug)]
-pub struct LayerMeta {}
+#[derive(Debug, debug3::Debug)]
+pub struct ResolvedChord<'a> {
+    chord: Chord<'a>,
+    left: MatrixPosition,
+    right: MatrixPosition,
+}
 
-impl LayerMeta {
-    pub fn process<'a>(
-        layer_map: &HashMap<String, usize>,
+#[derive(Debug, debug3::Debug)]
+pub struct ResolvedKey<'a> {
+    key: Key<'a>,
+    layout_pos: (u8, u8),
+    physical_pos: (u8, u8),
+    matrix_pos: MatrixPosition,
+}
+
+#[derive(Debug, debug3::Debug)]
+pub struct LayerMeta<'a> {
+    chords: Vec<ResolvedChord<'a>>,
+    keys: Vec<ResolvedKey<'a>>,
+}
+
+impl<'a> LayerMeta<'a> {
+    pub fn process(
+        layout_meta: &LayoutMeta,
+        layer_map: &BTreeMap<String, usize>,
         layer: &Layer<'a>,
     ) -> miette::Result<Self> {
-        todo!()
+        let mut keys = Vec::new();
+        let mut chords = Vec::new();
+
+        for (y, row) in layer.rows.iter().enumerate() {
+            let y = y as u8;
+            let mut x = 0;
+            let mut last_item = None;
+            let mut item_iter = row.items.iter().peekable();
+
+            while let Some(item) = item_iter.next() {
+                match item {
+                    crate::syntax::KeyOrChord::Key(key) => {
+                        let physical_pos = *layout_meta.layout_to_phys.get(&(x, y)).unwrap();
+                        let KeyAt::Located(matrix_pos) =
+                            *layout_meta.layout_to_matrix.get(&(x, y)).unwrap()
+                        else {
+                            panic!("Huh");
+                        };
+                        let resolved_key = ResolvedKey {
+                            key: key.clone(),
+                            layout_pos: (x, y),
+                            physical_pos,
+                            matrix_pos,
+                        };
+                        keys.push(resolved_key);
+                        x += 1;
+                    }
+                    crate::syntax::KeyOrChord::Chord(chord) => {
+                        if matches!(last_item, Some(&KeyOrChord::Key(_)))
+                            && matches!(item_iter.peek(), Some(KeyOrChord::Key(_)))
+                        {
+                            let Some(KeyAt::Located(left)) =
+                                layout_meta.layout_to_matrix.get(&(x - 1, y)).copied()
+                            else {
+                                panic!("Tried to get {:?}", (x, y));
+                            };
+                            let Some(KeyAt::Located(right)) =
+                                layout_meta.layout_to_matrix.get(&(x, y)).copied()
+                            else {
+                                panic!("Tried to get {:?}", (x, y));
+                            };
+
+                            chords.push(ResolvedChord {
+                                chord: chord.clone(),
+                                left,
+                                right,
+                            });
+                        } else {
+                            let prev_item =
+                                last_item.map_or(row.span.start_singleton(), |c| c.span());
+                            let next_item = item_iter
+                                .peek()
+                                .map_or(row.semi.span().start_singleton(), |c| c.span());
+
+                            return Err(AppError::BadChordPositions {
+                                bad_chord: chord.span(),
+                                prev_item,
+                                next_item,
+                            }
+                            .into());
+                        }
+                    }
+                }
+
+                last_item = Some(item);
+            }
+        }
+
+        Ok(Self { keys, chords })
     }
 }

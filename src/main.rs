@@ -11,7 +11,7 @@ use chumsky::Parser as _;
 use clap::Parser;
 use miette::IntoDiagnostic;
 
-use crate::process::LayoutMeta;
+use crate::process::{LayerMeta, LayersMeta, LayoutMeta};
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -59,7 +59,10 @@ fn main_inner(source: &str) -> miette::Result<()> {
     println!("{:#?}", r);
 
     let layout_meta = LayoutMeta::process(&r.layout)?;
-    println!("{:#?}", layout_meta);
+    debug3::dbg!(&layout_meta);
+    let layers_meta = LayersMeta::process(&layout_meta, &r.layers)?;
+
+    debug3::dbg!(&layers_meta);
 
     Ok(())
 }

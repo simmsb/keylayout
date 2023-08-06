@@ -1,0 +1,17 @@
+layout {
+  5k 5k;
+  5k 5k;
+  5k 5k;
+  2s [2] [0] [1] 1s [8] [9] [7] 2s;
+}
+
+key scroll {
+    out keyberon: "Custom::Scroll;
+}
+
+layer base {
+  'q' >esc< 'w' 'e' 'r' 't' 'y' >bsp< 'u' >del< 'i' >'/'< 'o' >'\'< 'p';
+  'a'@lshift 's' 'd' 'r' 'g' 'h' >'<'< 'j' >':'< 'k' >'>'< 'l'       ';'@rshift;
+  'z'@lctrl  'x' 'c' 'v' 'b' 'n' >'"'< 'm' >'''< ',' >'_'< '.'       '/'@rctrl;
+                lalt tab@win space@[sym] space@[num] enter@scroll ralt;
+}
