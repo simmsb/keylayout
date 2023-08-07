@@ -12,7 +12,7 @@ use chumsky::Parser as _;
 use clap::Parser;
 use miette::IntoDiagnostic;
 
-use crate::process::{LayerMeta, LayersMeta, LayoutMeta};
+use crate::process::{LayersMeta, LayoutMeta};
 
 #[derive(Parser, Debug)]
 struct Args {

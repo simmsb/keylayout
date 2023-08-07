@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 
 use locspan::Spanned;
 
@@ -93,7 +93,11 @@ impl LayoutMeta {
                         x += 1;
                         x_l += 1;
                     }
-                    crate::syntax::LayoutDefn::Spaces { count, s: _, span } => {
+                    crate::syntax::LayoutDefn::Spaces {
+                        count,
+                        s: _,
+                        span: _,
+                    } => {
                         for n in 0..*count {
                             let pos = (x + n, y as u8);
                             phys_to_matrix.insert(pos, KeyAt::Space);
@@ -179,7 +183,7 @@ pub struct LayerMeta<'a> {
 impl<'a> LayerMeta<'a> {
     pub fn process(
         layout_meta: &LayoutMeta,
-        layer_map: &BTreeMap<String, usize>,
+        _layer_map: &BTreeMap<String, usize>,
         layer: &Layer<'a>,
     ) -> miette::Result<Self> {
         let mut keys = Vec::new();

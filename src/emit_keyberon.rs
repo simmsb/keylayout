@@ -18,9 +18,7 @@ struct Emit<'a> {
     extra_allocated_rows: u8,
     extra_allocated_cols: u8,
     chord_table: HashMap<(MatrixPosition, MatrixPosition), MatrixPosition>,
-    extra_defns: Vec<(String, String)>,
 
-    file: File<'a>,
     layout_meta: &'a LayoutMeta,
     layers_meta: &'a LayersMeta<'a>,
 }
@@ -60,7 +58,7 @@ impl<'a> Emit<'a> {
     }
 
     fn process_layer(&mut self, layer: &'a LayerMeta<'a>) -> HashMap<MatrixPosition, &'a Key<'a>> {
-        let layer_idx = *self.layers_meta.layer_map.get(layer.name).unwrap() as u8;
+        let _layer_idx = *self.layers_meta.layer_map.get(layer.name).unwrap() as u8;
 
         let mut matrix = HashMap::new();
         for chord in &layer.chords {
@@ -80,9 +78,9 @@ impl<'a> Emit<'a> {
             Key::Plain(p) => self.map_plain_key(p),
             Key::ModTap {
                 tap,
-                at,
+                at: _,
                 hold,
-                span,
+                span: _,
             } => {
                 let tap = self.map_plain_key(tap)?.0;
                 let hold = self.map_plain_key(hold)?.0;
@@ -104,7 +102,7 @@ impl<'a> Emit<'a> {
     }
 
     fn map_plain_key(&mut self, p: &PlainKey<'_>) -> miette::Result<MatrixKey> {
-        Ok(match p {
+        match p {
             PlainKey::Named(name) => {
                 if let Some(k) = self.named_keys.get(name.s) {
                     return Ok(k.clone());
@@ -130,10 +128,10 @@ impl<'a> Emit<'a> {
                 .into());
             }
             PlainKey::Layer {
-                left_square,
+                left_square: _,
                 layer,
-                right_square,
-                span,
+                right_square: _,
+                span: _,
             } => {
                 if let Some(idx) = self.layers_meta.layer_map.get(layer.s) {
                     let k = MatrixKey(format!("::keyberon::action::Action::Layer({idx})"));
@@ -170,7 +168,7 @@ impl<'a> Emit<'a> {
                 }
                 .into());
             }
-        })
+        }
     }
 
     fn map_keys(
@@ -263,7 +261,6 @@ pub fn emit<'a>(
     named_keys.extend(predefined_named_keys());
 
     let mut e = Emit {
-        file,
         layout_meta,
         layers_meta,
 
@@ -271,7 +268,6 @@ pub fn emit<'a>(
         extra_allocated_rows: 0,
         extra_allocated_cols: 0,
         chord_table: HashMap::new(),
-        extra_defns: Vec::new(),
     };
 
     let mut s = String::new();

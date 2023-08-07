@@ -206,14 +206,22 @@ impl<'a, S: Copy> Spanned for LayoutDefn<S> {
 
     fn span(&self) -> Self::Span {
         match self {
-            LayoutDefn::Keys { count, k, span } => *span,
-            LayoutDefn::RemappedKey {
-                left_bracket,
-                position,
-                right_bracket,
+            LayoutDefn::Keys {
+                count: _,
+                k: _,
                 span,
             } => *span,
-            LayoutDefn::Spaces { count, s, span } => *span,
+            LayoutDefn::RemappedKey {
+                left_bracket: _,
+                position: _,
+                right_bracket: _,
+                span,
+            } => *span,
+            LayoutDefn::Spaces {
+                count: _,
+                s: _,
+                span,
+            } => *span,
         }
     }
 }

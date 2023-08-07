@@ -366,7 +366,7 @@ pub fn convert_error<'a>(err: Rich<'a, char>) -> ParseError {
             custom: m.to_string(),
             contexts,
         },
-        chumsky::error::RichReason::Many(o) => {
+        chumsky::error::RichReason::Many(_o) => {
             panic!("idk")
         }
     }

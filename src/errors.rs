@@ -43,7 +43,10 @@ pub enum AppError {
     },
 
     #[error("Unknown named key: {key}")]
-    #[diagnostic(code(unknown_named_key), help("The following similar keys exist: {similar}"))]
+    #[diagnostic(
+        code(unknown_named_key),
+        help("The following similar keys exist: {similar}")
+    )]
     UnknownNamedKey {
         #[label("I don't know this key")]
         span: Span,
@@ -54,7 +57,10 @@ pub enum AppError {
     },
 
     #[error("Unknown layer: {layer}")]
-    #[diagnostic(code(unknown_named_layer), help("The following similar layers exist: {similar}"))]
+    #[diagnostic(
+        code(unknown_named_layer),
+        help("The following similar layers exist: {similar}")
+    )]
     UnknownNamedLayer {
         #[label("I don't know this layer")]
         span: Span,
