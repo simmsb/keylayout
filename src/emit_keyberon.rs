@@ -91,7 +91,7 @@ impl<'a> Emit<'a> {
         timeout: 400,
         hold: {hold},
         tap: {tap},
-        config: ::keyberon::action::HoldTapConfig::PermissiveHold,
+        config: ::keyberon::action::HoldTapConfig::HoldOnOtherKeyPress,
         tap_hold_interval: 200,
     }})"#
                 );
@@ -371,8 +371,8 @@ fn char_keys() -> HashMap<char, MatrixKey> {
         ('|', sh("Bslash")),
         (';', plkc("SColon")),
         (':', sh("SColon")),
-        ('"', plkc("Quote")),
-        ('\'', sh("Quote")),
+        ('\'', plkc("Quote")),
+        ('"', sh("Quote")),
         ('`', plkc("Grave")),
         ('~', sh("Grave")),
         (',', plkc("Comma")),

@@ -27,7 +27,7 @@ key ctrlup {
 
 layer base {
   'q' >esc< 'w' 'e' 'r' 't' 'y' >bspace< 'u' >del< 'i' >'/'< 'o' >'\'< 'p';
-  'a'@lshift 's' 'd' 'r' 'g' 'h' >'<'< 'j' >':'< 'k' >'>'< 'l'       ';'@rshift;
+  'a'@lshift 's' 'd' 'f' 'g' 'h' >'<'< 'j' >':'< 'k' >'>'< 'l'       ';'@rshift;
   'z'@lctrl  'x' 'c' 'v' 'b' 'n' >'"'< 'm' >'''< ',' >'_'< '.'       '/'@rctrl;
                 lalt tab@lgui space@[sym] space@[num] enter@scroll ralt;
 }
