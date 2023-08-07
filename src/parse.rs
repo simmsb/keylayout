@@ -244,15 +244,18 @@ fn token<'a, const T: &'static str>() -> Map<
 }
 
 fn ident<'a>() -> impl Parser<'a, &'a str, Ident<'a>, extra::Err<Rich<'a, char>>> {
-    any()
-        .filter(|c: &char| c.is_alphabetic())
-        .repeated()
-        .at_least(1)
-        .slice()
-        .map_with_span(|t, s: SimpleSpan| Ident {
-            s: t,
-            span: s.into(),
-        })
+    group((
+        any().filter(|c: &char| c.is_alphabetic()).ignored(),
+        any()
+            .filter(|c: &char| c.is_alphanumeric())
+            .repeated()
+            .ignored(),
+    ))
+    .slice()
+    .map_with_span(|t, s: SimpleSpan| Ident {
+        s: t,
+        span: s.into(),
+    })
 }
 
 fn text<'a>() -> impl Parser<'a, &'a str, Text<'a>, extra::Err<Rich<'a, char>>> {

@@ -1,5 +1,6 @@
 #![feature(adt_const_params)]
 
+mod emit_keyberon;
 mod errors;
 mod parse;
 mod process;
@@ -56,13 +57,11 @@ fn main_inner(source: &str) -> miette::Result<()> {
         }
     };
 
-    println!("{:#?}", r);
-
     let layout_meta = LayoutMeta::process(&r.layout)?;
-    debug3::dbg!(&layout_meta);
     let layers_meta = LayersMeta::process(&layout_meta, &r.layers)?;
 
-    debug3::dbg!(&layers_meta);
+    let s = emit_keyberon::emit(r, &layout_meta, &layers_meta)?;
+    print!("{}", s);
 
     Ok(())
 }

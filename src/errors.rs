@@ -39,6 +39,40 @@ pub enum AppError {
         #[label("I don't understand this key")]
         span: Span,
 
+        key: char,
+    },
+
+    #[error("Unknown named key: {key}")]
+    #[diagnostic(code(unknown_named_key), help("The following similar keys exist: {similar}"))]
+    UnknownNamedKey {
+        #[label("I don't know this key")]
+        span: Span,
+
         key: String,
+
+        similar: String,
+    },
+
+    #[error("Unknown layer: {layer}")]
+    #[diagnostic(code(unknown_named_layer), help("The following similar layers exist: {similar}"))]
+    UnknownNamedLayer {
+        #[label("I don't know this layer")]
+        span: Span,
+
+        layer: String,
+
+        similar: String,
+    },
+    #[error("Inconsistent matrix width")]
+    #[diagnostic(
+        code(bad_matrix_width),
+        help("All rows of a matrix need to have the same number of keys")
+    )]
+    InconsistentMatrixWidth {
+        #[label("This row should have {expected} keys, but it has {got}")]
+        bad_row: Span,
+
+        got: u8,
+        expected: u8,
     },
 }

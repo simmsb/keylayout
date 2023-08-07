@@ -4,7 +4,7 @@ use locspan::Spanned;
 
 use crate::{
     errors::AppError,
-    syntax::{Chord, KeyOrChord, Layer, Layout, LayoutDefn, Key},
+    syntax::{Chord, Key, KeyOrChord, Layer, Layout, LayoutDefn},
 };
 
 #[derive(Debug, debug3::Debug, Clone, Copy)]
@@ -15,13 +15,15 @@ pub enum KeyAt {
 }
 
 #[derive(Debug, debug3::Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub struct MatrixPosition(u8, u8);
+pub struct MatrixPosition(pub u8, pub u8);
 
 #[derive(Debug, debug3::Debug)]
 pub struct LayoutMeta {
-    phys_to_matrix: BTreeMap<(u8, u8), KeyAt>,
-    layout_to_matrix: BTreeMap<(u8, u8), KeyAt>,
-    layout_to_phys: BTreeMap<(u8, u8), (u8, u8)>,
+    pub phys_to_matrix: BTreeMap<(u8, u8), KeyAt>,
+    pub layout_to_matrix: BTreeMap<(u8, u8), KeyAt>,
+    pub layout_to_phys: BTreeMap<(u8, u8), (u8, u8)>,
+    pub width: u8,
+    pub height: u8,
 }
 
 impl LayoutMeta {
@@ -30,6 +32,8 @@ impl LayoutMeta {
         let mut layout_to_matrix = BTreeMap::new();
         let mut layout_to_phys = BTreeMap::new();
         let mut matrix_to_key: BTreeMap<(u8, u8), &LayoutDefn> = BTreeMap::new();
+        let mut width = None;
+        let height = layout.rows.len() as u8;
 
         for (y, row) in layout.rows.iter().enumerate() {
             let mut x = 0;
@@ -99,20 +103,35 @@ impl LayoutMeta {
                     }
                 }
             }
+
+            if let Some(expected_width) = width {
+                if expected_width != x {
+                    return Err(AppError::InconsistentMatrixWidth {
+                        bad_row: row.span(),
+                        got: x,
+                        expected: expected_width,
+                    }
+                    .into());
+                }
+            } else {
+                width = Some(x);
+            }
         }
 
         Ok(LayoutMeta {
             phys_to_matrix,
             layout_to_matrix,
             layout_to_phys,
+            width: width.unwrap(),
+            height,
         })
     }
 }
 
 #[derive(Debug, debug3::Debug)]
 pub struct LayersMeta<'a> {
-    layer_map: BTreeMap<String, usize>,
-    layers: Vec<LayerMeta<'a>>,
+    pub layer_map: BTreeMap<String, usize>,
+    pub layers: Vec<LayerMeta<'a>>,
 }
 
 impl<'a> LayersMeta<'a> {
@@ -137,23 +156,24 @@ impl<'a> LayersMeta<'a> {
 
 #[derive(Debug, debug3::Debug)]
 pub struct ResolvedChord<'a> {
-    chord: Chord<'a>,
-    left: MatrixPosition,
-    right: MatrixPosition,
+    pub chord: Chord<'a>,
+    pub left: MatrixPosition,
+    pub right: MatrixPosition,
 }
 
 #[derive(Debug, debug3::Debug)]
 pub struct ResolvedKey<'a> {
-    key: Key<'a>,
-    layout_pos: (u8, u8),
-    physical_pos: (u8, u8),
-    matrix_pos: MatrixPosition,
+    pub key: Key<'a>,
+    pub layout_pos: (u8, u8),
+    pub physical_pos: (u8, u8),
+    pub matrix_pos: MatrixPosition,
 }
 
 #[derive(Debug, debug3::Debug)]
 pub struct LayerMeta<'a> {
-    chords: Vec<ResolvedChord<'a>>,
-    keys: Vec<ResolvedKey<'a>>,
+    pub name: &'a str,
+    pub chords: Vec<ResolvedChord<'a>>,
+    pub keys: Vec<ResolvedKey<'a>>,
 }
 
 impl<'a> LayerMeta<'a> {
@@ -230,6 +250,7 @@ impl<'a> LayerMeta<'a> {
             }
         }
 
-        Ok(Self { keys, chords })
+        let name = layer.name.s;
+        Ok(Self { name, keys, chords })
     }
 }
