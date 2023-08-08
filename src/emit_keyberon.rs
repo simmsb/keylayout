@@ -91,7 +91,7 @@ impl<'a> Emit<'a> {
         timeout: 400,
         hold: {hold},
         tap: {tap},
-        config: ::keyberon::action::HoldTapConfig::HoldOnOtherKeyPress,
+        config: ::keyberon::action::HoldTapConfig::PermissiveHold,
         tap_hold_interval: 200,
     }})"#
                 );
@@ -325,6 +325,7 @@ fn predefined_named_keys() -> HashMap<String, MatrixKey> {
         ("up", plkc("Up")),
         ("right", plkc("Right")),
         ("down", plkc("Down")),
+        ("end", plkc("End")),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_string(), v))
