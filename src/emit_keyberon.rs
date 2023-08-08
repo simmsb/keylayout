@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Write};
+use std::{collections::HashMap, io::Write};
 
 use itertools::Itertools;
 use ngrammatic::CorpusBuilder;
@@ -245,7 +245,8 @@ pub fn emit<'a>(
     file: File<'a>,
     layout_meta: &'a LayoutMeta,
     layers_meta: &'a LayersMeta<'a>,
-) -> miette::Result<String> {
+    out: &mut impl Write,
+) -> miette::Result<()> {
     let mut named_keys = file
         .custom_keys
         .iter()
@@ -270,11 +271,9 @@ pub fn emit<'a>(
         chord_table: HashMap::new(),
     };
 
-    let mut s = String::new();
+    e.process(out)?;
 
-    e.process(&mut s)?;
-
-    Ok(s)
+    Ok(())
 }
 
 fn kc(name: &str) -> String {

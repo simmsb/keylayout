@@ -1,9 +1,15 @@
+use std::io;
+
 use thiserror::Error;
 
 use crate::syntax::Span;
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum AppError {
+    #[error(transparent)]
+    #[diagnostic(code(io_error), help("I couldn't read or write a file"))]
+    IOError(#[from] io::Error),
+
     #[error("Overlapping keys on layout")]
     #[diagnostic(
         code(overlapping_keys),
@@ -69,6 +75,7 @@ pub enum AppError {
 
         similar: String,
     },
+
     #[error("Inconsistent matrix width")]
     #[diagnostic(
         code(bad_matrix_width),
