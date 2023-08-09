@@ -1,10 +1,10 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use locspan::Spanned;
 
 use crate::{
     errors::AppError,
-    syntax::{Chord, Key, KeyOrChord, Layer, Layout, LayoutDefn},
+    syntax::{Chord, Key, KeyOrChord, Layer, Layout, LayoutDefn, Options, OptionsFor, File},
 };
 
 #[derive(Debug, debug3::Debug, Clone, Copy)]
@@ -16,6 +16,52 @@ pub enum KeyAt {
 
 #[derive(Debug, debug3::Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct MatrixPosition(pub u8, pub u8);
+
+#[derive(Debug, debug3::Debug)]
+pub struct Metadata<'a> {
+    pub options: OptionsMeta,
+    pub layout: LayoutMeta,
+    pub layers: LayersMeta<'a>,
+}
+
+impl<'a> Metadata<'a> {
+    pub fn process(file: &'a File<'a>) -> miette::Result<Self> {
+        let options = OptionsMeta::process(&file.options);
+        let layout = LayoutMeta::process(&file.layout)?;
+        let layers = LayersMeta::process(&layout, &file.layers)?;
+
+        Ok(Self { options, layout, layers })
+    }
+}
+
+#[derive(Debug, debug3::Debug)]
+pub struct OptionsMeta {
+    pub options: HashMap<(String, String), String>,
+}
+
+impl OptionsMeta {
+    pub fn process<'a>(options: &[Options<'a>]) -> Self {
+        let mut resolved_options = HashMap::new();
+
+        for option in options {
+            let for_ = match option.for_ {
+                OptionsFor::RustyDilemma(_) => "rusty_dilemma",
+                OptionsFor::Formatter(_) => "formatter",
+            };
+
+            for item in &option.items {
+                resolved_options.insert(
+                    (for_.to_string(), item.name.s.to_string()),
+                    item.value.text.to_string(),
+                );
+            }
+        }
+
+        Self {
+            options: resolved_options,
+        }
+    }
+}
 
 #[derive(Debug, debug3::Debug)]
 pub struct LayoutMeta {
@@ -161,6 +207,7 @@ impl<'a> LayersMeta<'a> {
 #[derive(Debug, debug3::Debug)]
 pub struct ResolvedChord<'a> {
     pub chord: Chord<'a>,
+    pub left_layout: (u8, u8),
     pub left: MatrixPosition,
     pub right: MatrixPosition,
 }
@@ -228,8 +275,11 @@ impl<'a> LayerMeta<'a> {
                                 panic!("Tried to get {:?}", (x, y));
                             };
 
+                            let left_layout = (x - 1, y);
+
                             chords.push(ResolvedChord {
                                 chord: chord.clone(),
+                                left_layout,
                                 left,
                                 right,
                             });

@@ -2,6 +2,7 @@
 
 mod emit_keyberon;
 mod errors;
+mod format;
 mod parse;
 mod process;
 mod syntax;
@@ -10,12 +11,12 @@ use std::path::PathBuf;
 
 use chumsky::Parser as _;
 use clap::{CommandFactory, Parser};
-use miette::{IntoDiagnostic, NamedSource};
+use miette::{NamedSource};
 use patharg::OutputArg;
+use process::{Metadata};
 
 use crate::{
     errors::AppError,
-    process::{LayersMeta, LayoutMeta},
 };
 
 #[derive(Parser, Debug)]
@@ -69,13 +70,12 @@ impl Emit {
             }
         };
 
-        let layout_meta = LayoutMeta::process(&r.layout)?;
-        let layers_meta = LayersMeta::process(&layout_meta, &r.layers)?;
+        let metadata = Metadata::process(&r)?;
 
         let mut output = self.output.create().map_err(AppError::IOError)?;
         match self.mode {
             EmitBackend::RustyDilemma => {
-                emit_keyberon::emit(r, &layout_meta, &layers_meta, &mut output)?;
+                emit_keyberon::emit(&r, &metadata, &mut output)?;
             }
         }
 
@@ -95,12 +95,38 @@ struct Format {
     #[arg(from_global)]
     file: PathBuf,
 
+    /// Format the file in-place
+    #[arg(short, long)]
+    inplace: bool,
+
     #[arg(from_global)]
     output: OutputArg,
 }
 
 impl Format {
     fn run(&self) -> miette::Result<()> {
+        let source = std::fs::read_to_string(&self.file).map_err(AppError::IOError)?;
+        let r = match parse::file().parse(&source).into_result() {
+            Ok(r) => r,
+            Err(e) => {
+                for m in e {
+                    let e = miette::Error::new(parse::convert_error(m));
+                    return Err(e);
+                }
+                return Ok(());
+            }
+        };
+
+        let metadata = Metadata::process(&r)?;
+
+        if self.inplace {
+            let mut output = std::fs::File::create(&self.file).map_err(AppError::IOError)?;
+            format::format(&r, &metadata, &mut output);
+        } else {
+            let mut output = self.output.create().map_err(AppError::IOError)?;
+            format::format(&r, &metadata, &mut output);
+        }
+
         Ok(())
     }
 }

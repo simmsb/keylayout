@@ -6,7 +6,9 @@ use once_cell::sync::Lazy;
 
 use crate::{
     errors::AppError,
-    process::{LayerMeta, LayersMeta, LayoutMeta, MatrixPosition, ResolvedChord},
+    process::{
+        LayerMeta, MatrixPosition, Metadata, ResolvedChord,
+    },
     syntax::{File, Key, PlainKey},
 };
 
@@ -19,8 +21,7 @@ struct Emit<'a> {
     extra_allocated_cols: u8,
     chord_table: HashMap<(MatrixPosition, MatrixPosition), MatrixPosition>,
 
-    layout_meta: &'a LayoutMeta,
-    layers_meta: &'a LayersMeta<'a>,
+    metadata: &'a Metadata<'a>,
 }
 
 impl<'a> Emit<'a> {
@@ -35,12 +36,12 @@ impl<'a> Emit<'a> {
 
         let pos = MatrixPosition(
             self.extra_allocated_cols,
-            self.extra_allocated_rows + self.layout_meta.height - 1,
+            self.extra_allocated_rows + self.metadata.layout.height - 1,
         );
 
         self.extra_allocated_cols += 1;
 
-        if self.extra_allocated_cols >= self.layout_meta.width {
+        if self.extra_allocated_cols >= self.metadata.layout.width {
             self.extra_allocated_cols = 0;
             self.extra_allocated_rows += 1;
         }
@@ -58,7 +59,7 @@ impl<'a> Emit<'a> {
     }
 
     fn process_layer(&mut self, layer: &'a LayerMeta<'a>) -> HashMap<MatrixPosition, &'a Key<'a>> {
-        let _layer_idx = *self.layers_meta.layer_map.get(layer.name).unwrap() as u8;
+        let _layer_idx = *self.metadata.layers.layer_map.get(layer.name).unwrap() as u8;
 
         let mut matrix = HashMap::new();
         for chord in &layer.chords {
@@ -133,14 +134,14 @@ impl<'a> Emit<'a> {
                 right_square: _,
                 span: _,
             } => {
-                if let Some(idx) = self.layers_meta.layer_map.get(layer.s) {
+                if let Some(idx) = self.metadata.layers.layer_map.get(layer.s) {
                     let k = MatrixKey(format!("::keyberon::action::Action::Layer({idx})"));
                     return Ok(k);
                 }
 
                 let mut possible_names = CorpusBuilder::new().case_insensitive().finish();
 
-                for name in self.layers_meta.layer_map.keys() {
+                for name in self.metadata.layers.layer_map.keys() {
                     possible_names.add_text(name);
                 }
 
@@ -157,7 +158,7 @@ impl<'a> Emit<'a> {
                 }
                 .into());
             }
-            PlainKey::Char { c, span } => {
+            PlainKey::Char { left_quote: _, c, right_quote: _, span } => {
                 if let Some(a) = CHAR_KEYS.get(c) {
                     return Ok(a.clone());
                 }
@@ -200,9 +201,9 @@ impl<'a> Emit<'a> {
 
     fn render_matrix(&self, matrix: HashMap<MatrixPosition, MatrixKey>, out: &mut impl Write) {
         writeln!(out, "  [").unwrap();
-        for y in 0..(self.layout_meta.height + self.extra_allocated_rows) {
+        for y in 0..(self.metadata.layout.height + self.extra_allocated_rows) {
             write!(out, "    [").unwrap();
-            for x in 0..self.layout_meta.width {
+            for x in 0..self.metadata.layout.width {
                 if let Some(k) = matrix.get(&MatrixPosition(x, y)) {
                     write!(out, "{}, ", k.0).unwrap();
                 } else {
@@ -217,7 +218,7 @@ impl<'a> Emit<'a> {
     fn process(&mut self, out: &mut impl Write) -> miette::Result<()> {
         let mut layer_matrices = Vec::new();
 
-        for layer in &self.layers_meta.layers {
+        for layer in &self.metadata.layers.layers {
             let matrix = self.process_layer(layer);
 
             layer_matrices.push(matrix);
@@ -225,8 +226,8 @@ impl<'a> Emit<'a> {
 
         self.render_chords(out);
 
-        let cols = self.layout_meta.width;
-        let rows = self.layout_meta.height + self.extra_allocated_rows;
+        let cols = self.metadata.layout.width;
+        let rows = self.metadata.layout.height + self.extra_allocated_rows;
         let num_layers = layer_matrices.len();
         writeln!(out, "pub static LAYERS: ::keyberon::layout::Layers<{cols}, {rows}, {num_layers}, super::CustomEvent> = [").unwrap();
 
@@ -242,9 +243,8 @@ impl<'a> Emit<'a> {
 }
 
 pub fn emit<'a>(
-    file: File<'a>,
-    layout_meta: &'a LayoutMeta,
-    layers_meta: &'a LayersMeta<'a>,
+    file: &'a File<'a>,
+    metadata: &'a Metadata<'a>,
     out: &mut impl Write,
 ) -> miette::Result<()> {
     let mut named_keys = file
@@ -262,8 +262,7 @@ pub fn emit<'a>(
     named_keys.extend(predefined_named_keys());
 
     let mut e = Emit {
-        layout_meta,
-        layers_meta,
+        metadata,
 
         named_keys,
         extra_allocated_rows: 0,

@@ -16,6 +16,7 @@ locspan = { version = "0.7.13", features = ["reporting"] }
 miette = { version = "5.10.0", features = ["fancy"] }
 ngrammatic = "0.4.0"
 once_cell = "1.18.0"
+pad = "0.1.6"
 patharg = "0.3.0"
 pretty = { version = "0.12.1", features = ["termcolor"] }
 snailquote = "0.3.1"

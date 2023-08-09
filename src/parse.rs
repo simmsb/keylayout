@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use chumsky::{
     combinator::{Map, ToSpan},
+    label::Labelled,
     prelude::*,
     primitive::Just,
     text::int,
@@ -11,17 +12,19 @@ use thiserror::Error;
 
 use crate::syntax::{
     Chord, CustomKey, CustomKeyOutput, File, Ident, Key, KeyOrChord, Layer, LayerRow, Layout,
-    LayoutDefn, LayoutRow, PlainKey, Span, Text, Token,
+    LayoutDefn, LayoutRow, Options, OptionsFor, OptionsItem, PlainKey, Span, Text, Token,
 };
 
 pub fn file<'a>() -> impl Parser<'a, &'a str, File<'a>, extra::Err<Rich<'a, char>>> {
     group((
         layout(),
+        options().padded().repeated().collect(),
         custom_key().padded().repeated().collect(),
         layer().padded().repeated().collect(),
     ))
-    .map_with_span(|(layout, custom_keys, layers), span| File {
+    .map_with_span(|(layout, options, custom_keys, layers), span| File {
         layout,
+        options,
         custom_keys,
         layers,
         span: span.into(),
@@ -90,6 +93,49 @@ pub fn layout_defn<'a>() -> impl Parser<'a, &'a str, LayoutDefn, extra::Err<Rich
     );
 
     k.or(s).or(remapped)
+}
+
+pub fn options<'a>() -> impl Parser<'a, &'a str, Options<'a>, extra::Err<Rich<'a, char>>> {
+    group((
+        token::<"options">().padded(),
+        options_for().padded(),
+        token::<"{">().padded(),
+        options_item().padded().repeated().collect(),
+        token::<"}">().padded(),
+    ))
+    .map_with_span(
+        |(options_token, for_, left_curly, items, right_curly), span| Options {
+            options_token,
+            for_,
+            left_curly,
+            items,
+            right_curly,
+            span: span.into(),
+        },
+    )
+}
+pub fn options_for<'a>() -> impl Parser<'a, &'a str, OptionsFor, extra::Err<Rich<'a, char>>> {
+    choice((
+        token::<"rusty_dilemma">().map(OptionsFor::RustyDilemma),
+        token::<"formatter">().map(OptionsFor::Formatter),
+    ))
+}
+
+pub fn options_item<'a>() -> impl Parser<'a, &'a str, OptionsItem<'a>, extra::Err<Rich<'a, char>>> {
+    group((
+        ident().padded(),
+        token::<":">().padded(),
+        text().padded(),
+        token::<";">().padded(),
+    ))
+    .map_with_span(|(name, colon, value, semi), span| OptionsItem {
+        name,
+        colon,
+        value,
+        semi,
+        span: span.into(),
+    })
+    .labelled("custom key output")
 }
 
 pub fn custom_key<'a>() -> impl Parser<'a, &'a str, CustomKey<'a>, extra::Err<Rich<'a, char>>> {
@@ -217,30 +263,30 @@ fn plainkey<'a>() -> impl Parser<'a, &'a str, PlainKey<'a>, extra::Err<Rich<'a, 
                 span: span.into(),
             },
         );
-    let c = any()
-        .delimited_by(just('\''), just('\''))
-        .map_with_span(|c, span: SimpleSpan| PlainKey::Char {
+    let c = group((token::<"'">(), any(), token::<"'">())).map_with_span(
+        |(left_quote, c, right_quote), span: SimpleSpan| PlainKey::Char {
+            left_quote,
             c,
+            right_quote,
             span: span.into(),
-        });
-    let c2 = any()
-        .delimited_by(just('"'), just('"'))
-        .map_with_span(|c, span: SimpleSpan| PlainKey::Char {
-            c,
-            span: span.into(),
-        });
+        },
+    );
 
-    i.or(l).or(c).or(c2).labelled("plain key")
+    i.or(l).or(c).labelled("plain key")
 }
 
-fn token<'a, const T: &'static str>() -> Map<
-    ToSpan<Just<&'static str, &'a str, extra::Err<Rich<'a, char>>>, &'static str>,
-    SimpleSpan,
-    fn(SimpleSpan) -> Token<T>,
+fn token<'a, const T: &'static str>() -> Labelled<
+    Map<
+        ToSpan<Just<&'static str, &'a str, extra::Err<Rich<'a, char>>>, &'static str>,
+        SimpleSpan,
+        fn(SimpleSpan) -> Token<T>,
+    >,
+    &'static str,
 > {
     just(T)
         .to_span()
         .map((|s: SimpleSpan| Token(s.into())) as fn(_) -> _)
+        .labelled(T)
 }
 
 fn ident<'a>() -> impl Parser<'a, &'a str, Ident<'a>, extra::Err<Rich<'a, char>>> {
