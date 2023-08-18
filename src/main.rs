@@ -25,7 +25,7 @@ struct Args {
     command: Command,
 
     /// Your layout file
-    #[arg(global = true)]
+    #[arg(global = true, value_hint = clap::ValueHint::FilePath)]
     file: Option<PathBuf>,
 
     /// Where to place output, can be '-' for stdout
@@ -46,7 +46,7 @@ enum Command {
 #[derive(clap::Args, Debug)]
 struct Emit {
     /// Which generator to use
-    #[arg(value_enum)]
+    #[arg(short, long, value_enum)]
     mode: EmitBackend,
 
     #[arg(from_global)]
