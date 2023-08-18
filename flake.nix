@@ -59,6 +59,11 @@
         {
           packages.keylayout_lang = my-crate;
           apps.keylayout_lang.program = "${my-crate}/bin/keylayout_lang";
+
+          overlayAttrs = {
+            inherit (config.packages) keylayout_lang;
+          };
+
           devshells.default = {
             packagesFrom = [ my-crate ];
 
