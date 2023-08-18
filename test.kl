@@ -5,8 +5,11 @@ layout {
   2s [2] [0] [1] [8] [9] [7] 2s;
 }
 
-options formatter {
-  foo: "bar";
+options rusty_dilemma {
+  hold_tap_timeout: "400";
+  hold_tap_config: "PermissiveHold";
+  hold_tap_interval: "200";
+  custom_event: "super::CustomEvent";
 }
 
 key scroll {

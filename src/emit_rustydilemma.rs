@@ -6,9 +6,7 @@ use once_cell::sync::Lazy;
 
 use crate::{
     errors::AppError,
-    process::{
-        LayerMeta, MatrixPosition, Metadata, ResolvedChord,
-    },
+    process::{LayerMeta, MatrixPosition, Metadata, ResolvedChord},
     syntax::{File, Key, PlainKey},
 };
 
@@ -25,6 +23,15 @@ struct Emit<'a> {
 }
 
 impl<'a> Emit<'a> {
+    fn option(&self, key: &str) -> Option<&'a str> {
+        self.metadata
+            .get_option(crate::process::OptionKey::RustyDilemma, key)
+    }
+
+    fn option_d<'d: 'a>(&self, key: &str, default: &'d str) -> &'a str {
+        self.option(key).unwrap_or(default)
+    }
+
     fn allocate_extra_key(
         &mut self,
         left: MatrixPosition,
@@ -89,12 +96,15 @@ impl<'a> Emit<'a> {
                 let a = format!(
                     r#"::keyberon::action::Action::HoldTap(
     &::keyberon::action::HoldTapAction {{
-        timeout: 400,
+        timeout: {},
         hold: {hold},
         tap: {tap},
-        config: ::keyberon::action::HoldTapConfig::PermissiveHold,
-        tap_hold_interval: 200,
-    }})"#
+        config: ::keyberon::action::HoldTapConfig::{},
+        tap_hold_interval: {},
+    }})"#,
+                    self.option_d("hold_tap_timeout", "400"),
+                    self.option_d("hold_tap_config", "PermissiveHold"),
+                    self.option_d("hold_tap_interval", "200")
                 );
 
                 Ok(MatrixKey(a))
@@ -158,7 +168,12 @@ impl<'a> Emit<'a> {
                 }
                 .into());
             }
-            PlainKey::Char { left_quote: _, c, right_quote: _, span } => {
+            PlainKey::Char {
+                left_quote: _,
+                c,
+                right_quote: _,
+                span,
+            } => {
                 if let Some(a) = CHAR_KEYS.get(c) {
                     return Ok(a.clone());
                 }
@@ -229,7 +244,12 @@ impl<'a> Emit<'a> {
         let cols = self.metadata.layout.width;
         let rows = self.metadata.layout.height + self.extra_allocated_rows;
         let num_layers = layer_matrices.len();
-        writeln!(out, "pub static LAYERS: ::keyberon::layout::Layers<{cols}, {rows}, {num_layers}, super::CustomEvent> = [").unwrap();
+        writeln!(
+            out,
+            "pub static LAYERS: ::keyberon::layout::Layers<{cols}, {rows}, {num_layers}, {}> = [",
+            self.option_d("custom_event", "()")
+        )
+        .unwrap();
 
         for matrix in layer_matrices {
             let mapped_matrix = self.map_keys(matrix)?;

@@ -291,9 +291,9 @@ fn token<'a, const T: &'static str>() -> Labelled<
 
 fn ident<'a>() -> impl Parser<'a, &'a str, Ident<'a>, extra::Err<Rich<'a, char>>> {
     group((
-        any().filter(|c: &char| c.is_alphabetic()).ignored(),
+        any().filter(|c: &char| c.is_alphabetic() || "-_".contains(*c)).ignored(),
         any()
-            .filter(|c: &char| c.is_alphanumeric())
+            .filter(|c: &char| c.is_alphanumeric() || "-_".contains(*c))
             .repeated()
             .ignored(),
     ))

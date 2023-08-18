@@ -17,9 +17,15 @@ pub enum KeyAt {
 #[derive(Debug, debug3::Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct MatrixPosition(pub u8, pub u8);
 
+#[derive(Debug, debug3::Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub enum OptionKey {
+    RustyDilemma,
+    Formatter,
+}
+
 #[derive(Debug, debug3::Debug)]
 pub struct Metadata<'a> {
-    pub options: OptionsMeta,
+    pub options: OptionsMeta<'a>,
     pub layout: LayoutMeta,
     pub layers: LayersMeta<'a>,
 }
@@ -32,27 +38,31 @@ impl<'a> Metadata<'a> {
 
         Ok(Self { options, layout, layers })
     }
+
+    pub fn get_option(&self, emitter: OptionKey, key: &str) -> Option<&'a str> {
+        self.options.options.get(&(emitter, key)).map(|x| *x)
+    }
 }
 
 #[derive(Debug, debug3::Debug)]
-pub struct OptionsMeta {
-    pub options: HashMap<(String, String), String>,
+pub struct OptionsMeta<'a> {
+    pub options: HashMap<(OptionKey, &'a str), &'a str>,
 }
 
-impl OptionsMeta {
-    pub fn process<'a>(options: &[Options<'a>]) -> Self {
+impl<'a> OptionsMeta<'a> {
+    pub fn process(options: &'a [Options<'a>]) -> Self {
         let mut resolved_options = HashMap::new();
 
         for option in options {
             let for_ = match option.for_ {
-                OptionsFor::RustyDilemma(_) => "rusty_dilemma",
-                OptionsFor::Formatter(_) => "formatter",
+                OptionsFor::RustyDilemma(_) => OptionKey::RustyDilemma,
+                OptionsFor::Formatter(_) => OptionKey::Formatter,
             };
 
             for item in &option.items {
                 resolved_options.insert(
-                    (for_.to_string(), item.name.s.to_string()),
-                    item.value.text.to_string(),
+                    (for_, item.name.s),
+                    item.value.text.as_ref(),
                 );
             }
         }

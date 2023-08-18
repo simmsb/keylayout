@@ -1,6 +1,6 @@
 #![feature(adt_const_params)]
 
-mod emit_keyberon;
+mod emit_rustydilemma;
 mod errors;
 mod format;
 mod parse;
@@ -75,7 +75,7 @@ impl Emit {
         let mut output = self.output.create().map_err(AppError::IOError)?;
         match self.mode {
             EmitBackend::RustyDilemma => {
-                emit_keyberon::emit(&r, &metadata, &mut output)?;
+                emit_rustydilemma::emit(&r, &metadata, &mut output)?;
             }
         }
 
