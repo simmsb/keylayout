@@ -12,28 +12,39 @@ options rusty_dilemma {
   custom_event: "super::CustomEvent";
 }
 
+options keymap_drawer {
+  qmk_keyboard: "corne_rotated";
+  qmk_layout: "LAYOUT_split_3x5_3";
+}
+
 key scroll {
   out keyberon: "::keyberon::action::Action::Custom(super::CustomEvent::MouseScroll)";
+  out keymap_drawer: "Scroll";
 }
 
 key ml {
   out keyberon: "::keyberon::action::Action::Custom(super::CustomEvent::MouseLeft)";
+  out keymap_drawer: "Mouse Left";
 }
 
 key mr {
   out keyberon: "::keyberon::action::Action::Custom(super::CustomEvent::MouseRight)";
+  out keymap_drawer: "Mouse Right";
 }
 
 key ctrldown {
   out keyberon: "::keyberon::action::Action::MultipleKeyCodes(&[::keyberon::key_code::KeyCode::LCtrl, ::keyberon::key_code::KeyCode::Down].as_slice())";
+  out keymap_drawer: "Ctrl+Down";
 }
 
 key ctrlup {
   out keyberon: "::keyberon::action::Action::MultipleKeyCodes(&[::keyberon::key_code::KeyCode::LCtrl, ::keyberon::key_code::KeyCode::Up].as_slice())";
+  out keymap_drawer: "Ctrl+Up";
 }
 
 key metax {
   out keyberon: "::keyberon::action::Action::MultipleKeyCodes(&[::keyberon::key_code::KeyCode::LGui, ::keyberon::key_code::KeyCode::X].as_slice())";
+  out keymap_drawer: "M-x";
 }
 
 layer base {

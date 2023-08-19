@@ -117,6 +117,7 @@ pub fn options<'a>() -> impl Parser<'a, &'a str, Options<'a>, extra::Err<Rich<'a
 pub fn options_for<'a>() -> impl Parser<'a, &'a str, OptionsFor, extra::Err<Rich<'a, char>>> {
     choice((
         token::<"rusty_dilemma">().map(OptionsFor::RustyDilemma),
+        token::<"keymap_drawer">().map(OptionsFor::KeymapDrawer),
         token::<"formatter">().map(OptionsFor::Formatter),
     ))
 }

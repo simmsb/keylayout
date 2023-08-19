@@ -182,6 +182,7 @@ impl<'a, S: Copy> Spanned for Options<'a, S> {
 #[derive(Debug, debug3::Debug, Clone, PartialEq, Eq)]
 pub enum OptionsFor<S = Span> {
     RustyDilemma(Token<"rusty_dilemma", S>),
+    KeymapDrawer(Token<"keymap_drawer", S>),
     Formatter(Token<"formatter", S>),
 }
 
@@ -189,6 +190,7 @@ impl OptionsFor {
     pub fn to_doc(&self) -> RcDoc {
         match self {
             OptionsFor::RustyDilemma(x) => x.to_doc(),
+            OptionsFor::KeymapDrawer(x) => x.to_doc(),
             OptionsFor::Formatter(x) => x.to_doc(),
         }
     }
@@ -200,6 +202,7 @@ impl<S: Copy> Spanned for OptionsFor<S> {
     fn span(&self) -> Self::Span {
         match self {
             OptionsFor::RustyDilemma(t) => t.span(),
+            OptionsFor::KeymapDrawer(t) => t.span(),
             OptionsFor::Formatter(t) => t.span(),
         }
     }

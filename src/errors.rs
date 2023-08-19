@@ -88,4 +88,14 @@ pub enum AppError {
         got: u8,
         expected: u8,
     },
+
+    #[error("An option is required")]
+    #[diagnostic(
+        code(required_option),
+        help("The option {option_name} is required for {backend}")
+    )]
+    OptionRequired {
+        option_name: String,
+        backend: String,
+    },
 }

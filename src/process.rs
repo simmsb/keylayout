@@ -20,6 +20,7 @@ pub struct MatrixPosition(pub u8, pub u8);
 #[derive(Debug, debug3::Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum OptionKey {
     RustyDilemma,
+    KeymapDrawer,
     Formatter,
 }
 
@@ -56,6 +57,7 @@ impl<'a> OptionsMeta<'a> {
         for option in options {
             let for_ = match option.for_ {
                 OptionsFor::RustyDilemma(_) => OptionKey::RustyDilemma,
+                OptionsFor::KeymapDrawer(_) => OptionKey::KeymapDrawer,
                 OptionsFor::Formatter(_) => OptionKey::Formatter,
             };
 

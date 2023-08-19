@@ -1,5 +1,6 @@
 #![feature(adt_const_params)]
 
+mod emit_keymap_drawer;
 mod emit_rustydilemma;
 mod errors;
 mod format;
@@ -11,13 +12,11 @@ use std::path::PathBuf;
 
 use chumsky::Parser as _;
 use clap::{CommandFactory, Parser};
-use miette::{NamedSource};
+use miette::NamedSource;
 use patharg::OutputArg;
-use process::{Metadata};
+use process::Metadata;
 
-use crate::{
-    errors::AppError,
-};
+use crate::errors::AppError;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -77,6 +76,9 @@ impl Emit {
             EmitBackend::RustyDilemma => {
                 emit_rustydilemma::emit(&r, &metadata, &mut output)?;
             }
+            EmitBackend::KeymapDrawer => {
+                emit_keymap_drawer::emit(&r, &metadata, &mut output)?;
+            }
         }
 
         Ok(())
@@ -87,6 +89,8 @@ impl Emit {
 enum EmitBackend {
     /// Generate a layout file for the rusty dilemma firmware
     RustyDilemma,
+    /// Generate a layout file for https://github.com/caksoylar/keymap-drawer
+    KeymapDrawer,
 }
 
 /// Format the layout definition
