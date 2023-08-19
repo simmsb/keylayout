@@ -318,7 +318,7 @@ fn text<'a>() -> impl Parser<'a, &'a str, Text<'a>, extra::Err<Rich<'a, char>>> 
         .slice()
         .map(|text: &str| {
             if text.contains('\\') {
-                Cow::Owned(snailquote::unescape(text).unwrap())
+                Cow::Owned(text.replace("\\\"", "\"").replace("\\\\", "\\"))
             } else {
                 Cow::Borrowed(text)
             }

@@ -6,10 +6,7 @@ use std::{
 use itertools::Itertools;
 use locspan::Spanned;
 
-use crate::{
-    process::{Metadata},
-    syntax::File,
-};
+use crate::{process::Metadata, syntax::File};
 
 #[derive(Default, Debug, debug3::Debug, Clone)]
 pub struct KeySpacing {
@@ -19,18 +16,14 @@ pub struct KeySpacing {
 
 struct Format<'a> {
     column_widths: Vec<KeySpacing>,
-    has_chord: HashSet<(&'a str, (u8, u8))>,
     empties: HashSet<(u8, u8)>,
 
     file: &'a File<'a>,
-
-    meta: &'a Metadata<'a>,
 }
 
 impl<'a> Format<'a> {
     fn new(file: &'a File<'a>, meta: &'a Metadata<'a>) -> Self {
         let mut column_widths = vec![KeySpacing::default(); meta.layout.width as usize];
-        let mut has_chord = HashSet::new();
         let mut empties = HashSet::new();
 
         let phys_to_layout = meta
@@ -64,8 +57,6 @@ impl<'a> Format<'a> {
                     if let Some(chord_node) = layout_to_chord.get(&(x, y)) {
                         spacing.chord_width =
                             spacing.chord_width.max(chord_node.chord.span().len());
-
-                        has_chord.insert((layer.name, (x, y)));
                     }
                 } else {
                     empties.insert((x, y));
@@ -75,10 +66,8 @@ impl<'a> Format<'a> {
 
         Self {
             column_widths,
-            has_chord,
             empties,
             file,
-            meta,
         }
     }
 

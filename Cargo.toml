@@ -22,5 +22,4 @@ patharg = "0.3.0"
 pretty = { version = "0.12.1", features = ["termcolor"] }
 serde = { version = "1.0.183", features = ["derive"] }
 serde_yaml = "0.9.25"
-snailquote = "0.3.1"
 thiserror = "1.0.44"
