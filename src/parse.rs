@@ -292,7 +292,9 @@ fn token<'a, const T: &'static str>() -> Labelled<
 
 fn ident<'a>() -> impl Parser<'a, &'a str, Ident<'a>, extra::Err<Rich<'a, char>>> {
     group((
-        any().filter(|c: &char| c.is_alphabetic() || "-_".contains(*c)).ignored(),
+        any()
+            .filter(|c: &char| c.is_alphabetic() || "-_".contains(*c))
+            .ignored(),
         any()
             .filter(|c: &char| c.is_alphanumeric() || "-_".contains(*c))
             .repeated()
@@ -308,31 +310,28 @@ fn ident<'a>() -> impl Parser<'a, &'a str, Ident<'a>, extra::Err<Rich<'a, char>>
 fn text<'a>() -> impl Parser<'a, &'a str, Text<'a>, extra::Err<Rich<'a, char>>> {
     let escape = just('\\').then(choice((just('\\'), just('"')))).ignored();
 
-    let plain_string = none_of("\n\\\"")
-        .ignored()
-        .repeated()
-        .slice()
-        .map(|text| Cow::Borrowed(text));
     let escaped_string = none_of("\n\\\"")
         .ignored()
         .or(escape)
         .ignored()
         .repeated()
         .slice()
-        .map(|text| Cow::Owned(snailquote::unescape(text).unwrap()));
+        .map(|text: &str| {
+            if text.contains('\\') {
+                Cow::Owned(snailquote::unescape(text).unwrap())
+            } else {
+                Cow::Borrowed(text)
+            }
+        });
 
-    group((
-        token::<"\"">(),
-        plain_string.or(escaped_string),
-        token::<"\"">(),
-    ))
-    .map_with_span(|(left_quote, text, right_quote), span| Text {
-        left_quote,
-        text,
-        right_quote,
-        span: span.into(),
-    })
-    .labelled("a quoted string")
+    group((token::<"\"">(), escaped_string, token::<"\"">()))
+        .map_with_span(|(left_quote, text, right_quote), span| Text {
+            left_quote,
+            text,
+            right_quote,
+            span: span.into(),
+        })
+        .labelled("a quoted string")
 }
 
 #[derive(Error, Debug, miette::Diagnostic)]
