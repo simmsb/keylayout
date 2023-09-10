@@ -36,9 +36,7 @@ struct Args {
 enum Command {
     Emit(Emit),
     Format(Format),
-
-    /// Generate completions for your shell
-    GenCompletions,
+    GenCompletions(GenCompletions),
 }
 
 /// Process a keyboard layout and emit for a specified backend
@@ -135,6 +133,13 @@ impl Format {
     }
 }
 
+/// Generate completions for your shell
+#[derive(clap::Args, Debug)]
+struct GenCompletions {
+    #[arg(short, long, default_value = "false")]
+    nu: bool,
+}
+
 fn main() -> miette::Result<()> {
     let args = Args::parse();
 
@@ -155,16 +160,28 @@ fn main() -> miette::Result<()> {
     let r = match args.command {
         Command::Emit(cmd) => cmd.run(),
         Command::Format(cmd) => cmd.run(),
-        Command::GenCompletions => {
-            let shell = clap_complete::Shell::from_env().unwrap();
-            let bin_name = Args::command().get_name().to_string();
+        Command::GenCompletions(cmd) => {
+            if cmd.nu {
+                let shell = clap_complete_nushell::Nushell;
+                let bin_name = Args::command().get_name().to_string();
 
-            clap_complete::generate(
-                shell,
-                &mut Args::command(),
-                bin_name,
-                &mut std::io::stdout(),
-            );
+                clap_complete::generate(
+                    shell,
+                    &mut Args::command(),
+                    bin_name,
+                    &mut std::io::stdout(),
+                );
+            } else {
+                let shell = clap_complete::Shell::from_env().unwrap();
+                let bin_name = Args::command().get_name().to_string();
+
+                clap_complete::generate(
+                    shell,
+                    &mut Args::command(),
+                    bin_name,
+                    &mut std::io::stdout(),
+                );
+            }
 
             Ok(())
         }
