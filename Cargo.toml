@@ -6,21 +6,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chumsky = { version = "1.0.0-alpha.4", features = ["extension", "label", "memoization"] }
-clap = { version = "4.4.2", features = ["derive", "wrap_help"] }
-clap_complete = { version = "4.4.1" }
-clap_complete_nushell = "4.4.0"
-color-eyre = "0.6.2"
-debug3 = "0.3.0"
-indexmap = { version = "2.0.0", features = ["serde"] }
-itertools = "0.11.0"
-locspan = { version = "0.7.16", features = ["reporting"] }
-miette = { version = "5.10.0", features = ["fancy"] }
+chumsky = { version = "1.0.0-alpha.6", features = ["extension", "label", "memoization"] }
+clap = { version = "4.5.4", features = ["derive", "wrap_help"] }
+clap_complete = { version = "4.5.1" }
+clap_complete_nushell = "4.5.1"
+color-eyre = "0.6.3"
+debug3 = "0.4.1"
+indexmap = { version = "2.2.6", features = ["serde"] }
+itertools = "0.12.1"
+locspan = { version = "0.8.2", features = ["reporting"] }
+miette = { version = "7.2.0", features = ["fancy"] }
 ngrammatic = "0.4.0"
-once_cell = "1.18.0"
+once_cell = "1.19.0"
 pad = "0.1.6"
-patharg = "0.3.0"
-pretty = { version = "0.12.1", features = ["termcolor"] }
-serde = { version = "1.0.188", features = ["derive"] }
-serde_yaml = "0.9.25"
-thiserror = "1.0.48"
+patharg = "0.4.0"
+pretty = { version = "0.12.3", features = ["termcolor"] }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_yaml = "0.9.34"
+thiserror = "1.0.58"

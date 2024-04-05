@@ -16,6 +16,23 @@ use crate::syntax::{
     Token,
 };
 
+trait HasMapWithSpan<'a, I, O, E>
+    where I: chumsky::input::Input<'a>,
+          E: chumsky::extra::ParserExtra<'a, I>
+{
+    fn map_with_span<U, F: Fn(O, I::Span) -> U>(self, f: F) -> impl Parser<'a, I, U, E>;
+}
+
+impl<'a, T, I, O, E> HasMapWithSpan<'a, I, O, E> for T
+    where T: chumsky::Parser<'a, I, O, E>,
+          I: chumsky::input::Input<'a>,
+          E: chumsky::extra::ParserExtra<'a, I>
+    {
+    fn map_with_span<U, F: Fn(O, I::Span) -> U>(self, f: F) -> impl Parser<'a, I, U, E> {
+        self.map_with(move |x, e| f(x, e.span()))
+    }
+}
+
 pub fn file<'a>() -> impl Parser<'a, &'a str, File<'a>, extra::Err<Rich<'a, char>>> {
     group((
         layout(),
@@ -305,7 +322,7 @@ fn ident<'a>() -> impl Parser<'a, &'a str, Ident<'a>, extra::Err<Rich<'a, char>>
             .repeated()
             .ignored(),
     ))
-    .slice()
+    .to_slice()
     .map_with_span(|t, s: SimpleSpan| Ident {
         s: t,
         span: s.into(),
@@ -320,7 +337,7 @@ fn text<'a>() -> impl Parser<'a, &'a str, Text<'a>, extra::Err<Rich<'a, char>>> 
         .or(escape)
         .ignored()
         .repeated()
-        .slice()
+        .to_slice()
         .map(|text: &str| {
             if text.contains('\\') {
                 Cow::Owned(text.replace("\\\"", "\"").replace("\\\\", "\\"))
@@ -353,7 +370,7 @@ pub struct LabelNote {
 pub enum ParseError {
     #[error("Unexpected input: {found}")]
     UnexpectedInput {
-        #[label("{expected_msg}")]
+        #[label(primary, "{expected_msg}")]
         err_span: Span,
 
         expected_msg: String,
@@ -366,7 +383,7 @@ pub enum ParseError {
 
     #[error("{custom}")]
     Custom {
-        #[label]
+        #[label(primary)]
         err_span: Span,
 
         custom: String,

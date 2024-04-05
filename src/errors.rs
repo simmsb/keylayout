@@ -16,7 +16,7 @@ pub enum AppError {
         help("Keys should all end up on unique matrix positions")
     )]
     OverlappingKeys {
-        #[label("This key")]
+        #[label(primary, "This key")]
         span: Span,
 
         #[label("Overlaps with this key")]
@@ -29,7 +29,7 @@ pub enum AppError {
         help("Chords should be positioned between two normal keys")
     )]
     BadChordPositions {
-        #[label("For this to be a valid chord")]
+        #[label(primary, "For this to be a valid chord")]
         bad_chord: Span,
 
         #[label("There should be a key here")]
@@ -42,7 +42,7 @@ pub enum AppError {
     #[error("Unknown key: {key}")]
     #[diagnostic(code(unknown_key), help("Try picking a key that exists, huh?"))]
     UnknownKey {
-        #[label("I don't understand this key")]
+        #[label(primary, "I don't understand this key")]
         span: Span,
 
         key: char,
@@ -54,7 +54,7 @@ pub enum AppError {
         help("The following similar keys exist: {similar}")
     )]
     UnknownNamedKey {
-        #[label("I don't know this key")]
+        #[label(primary, "I don't know this key")]
         span: Span,
 
         key: String,
@@ -68,7 +68,7 @@ pub enum AppError {
         help("The following similar layers exist: {similar}")
     )]
     UnknownNamedLayer {
-        #[label("I don't know this layer")]
+        #[label(primary, "I don't know this layer")]
         span: Span,
 
         layer: String,
@@ -82,7 +82,7 @@ pub enum AppError {
         help("All rows of a matrix need to have the same number of keys")
     )]
     InconsistentMatrixWidth {
-        #[label("This row should have {expected} keys, but it has {got}")]
+        #[label(primary, "This row should have {expected} keys, but it has {got}")]
         bad_row: Span,
 
         got: u8,

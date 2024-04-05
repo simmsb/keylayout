@@ -22,13 +22,13 @@ impl debug3::Debug for Span {
 
 impl Span {
     pub fn start_singleton(self) -> Self {
-        Self(SourceSpan::new(self.0.offset().into(), 0.into()))
+        Self(SourceSpan::new(self.0.offset().into(), 0))
     }
 
     pub fn end_singleton(self) -> Self {
         Self(SourceSpan::new(
             (self.0.offset() + self.0.len()).into(),
-            0.into(),
+            0,
         ))
     }
 
