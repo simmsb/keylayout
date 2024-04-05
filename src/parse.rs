@@ -12,7 +12,8 @@ use thiserror::Error;
 
 use crate::syntax::{
     Chord, CustomKey, CustomKeyOutput, File, Ident, Key, KeyOrChord, Layer, LayerRow, Layout,
-    LayoutDefn, LayoutRow, Options, OptionsFor, OptionsItem, PlainKey, Span, Text, Token,
+    LayoutDefn, LayoutRow, ModTapType, Options, OptionsFor, OptionsItem, PlainKey, Span, Text,
+    Token,
 };
 
 pub fn file<'a>() -> impl Parser<'a, &'a str, File<'a>, extra::Err<Rich<'a, char>>> {
@@ -239,7 +240,11 @@ fn chord<'a>() -> impl Parser<'a, &'a str, Chord<'a>, extra::Err<Rich<'a, char>>
 fn key<'a>() -> impl Parser<'a, &'a str, Key<'a>, extra::Err<Rich<'a, char>>> {
     let p = plainkey().map(Key::Plain);
     let mt = plainkey()
-        .then(token::<"@">())
+        .then(
+            token::<"@~">()
+                .map(ModTapType::OnOtherKey)
+                .or(token::<"@">().map(ModTapType::Permissive)),
+        )
         .then(plainkey())
         .map_with_span(|((tap, at), hold), span| Key::ModTap {
             tap,

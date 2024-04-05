@@ -4,7 +4,7 @@ use locspan::Spanned;
 
 use crate::{
     errors::AppError,
-    syntax::{Chord, Key, KeyOrChord, Layer, Layout, LayoutDefn, Options, OptionsFor, File},
+    syntax::{Chord, File, Key, KeyOrChord, Layer, Layout, LayoutDefn, Options, OptionsFor},
 };
 
 #[derive(Debug, debug3::Debug, Clone, Copy)]
@@ -37,7 +37,11 @@ impl<'a> Metadata<'a> {
         let layout = LayoutMeta::process(&file.layout)?;
         let layers = LayersMeta::process(&layout, &file.layers)?;
 
-        Ok(Self { options, layout, layers })
+        Ok(Self {
+            options,
+            layout,
+            layers,
+        })
     }
 
     pub fn get_option(&self, emitter: OptionKey, key: &str) -> Option<&'a str> {

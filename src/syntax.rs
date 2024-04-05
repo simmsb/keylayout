@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    collections::{HashSet},
-};
+use std::{borrow::Cow, collections::HashSet};
 
 use chumsky::span::SimpleSpan;
 use locspan::Spanned;
@@ -404,7 +401,11 @@ pub enum LayoutDefn<S = Span> {
 impl LayoutDefn {
     pub fn to_doc(&self) -> RcDoc {
         match self {
-            LayoutDefn::Keys { count, k: _, span: _ } => RcDoc::text(format!("{}k", count)),
+            LayoutDefn::Keys {
+                count,
+                k: _,
+                span: _,
+            } => RcDoc::text(format!("{}k", count)),
             LayoutDefn::RemappedKey {
                 left_bracket,
                 position,
@@ -414,7 +415,11 @@ impl LayoutDefn {
                 .to_doc()
                 .append(RcDoc::as_string(position))
                 .append(right_bracket.to_doc()),
-            LayoutDefn::Spaces { count, s: _, span: _ } => RcDoc::text(format!("{}s", count)),
+            LayoutDefn::Spaces {
+                count,
+                s: _,
+                span: _,
+            } => RcDoc::text(format!("{}s", count)),
         }
     }
 }
@@ -610,11 +615,26 @@ impl<'a> Chord<'a> {
 }
 
 #[derive(Debug, debug3::Debug, Clone, PartialEq, Eq)]
+pub enum ModTapType<S = Span> {
+    Permissive(Token<"@", S>),
+    OnOtherKey(Token<"@~", S>),
+}
+
+impl ModTapType {
+    pub fn to_doc(&self) -> RcDoc {
+        match self {
+            ModTapType::Permissive(t) => t.to_doc(),
+            ModTapType::OnOtherKey(t) => t.to_doc(),
+        }
+    }
+}
+
+#[derive(Debug, debug3::Debug, Clone, PartialEq, Eq)]
 pub enum Key<'a, S = Span> {
     Plain(PlainKey<'a, S>),
     ModTap {
         tap: PlainKey<'a, S>,
-        at: Token<"@", S>,
+        at: ModTapType<S>,
         hold: PlainKey<'a, S>,
         span: S,
     },
