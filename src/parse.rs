@@ -12,22 +12,24 @@ use thiserror::Error;
 
 use crate::syntax::{
     Chord, CustomKey, CustomKeyOutput, File, Ident, Key, KeyOrChord, Layer, LayerRow, Layout,
-    LayoutDefn, LayoutRow, ModTapType, Options, OptionsFor, OptionsItem, PlainKey, Span, Text,
-    Token,
+    LayoutDefn, LayoutRow, ModTapTimeout, ModTapType, Options, OptionsFor, OptionsItem, PlainKey,
+    Span, Text, Token,
 };
 
 trait HasMapWithSpan<'a, I, O, E>
-    where I: chumsky::input::Input<'a>,
-          E: chumsky::extra::ParserExtra<'a, I>
+where
+    I: chumsky::input::Input<'a>,
+    E: chumsky::extra::ParserExtra<'a, I>,
 {
     fn map_with_span<U, F: Fn(O, I::Span) -> U>(self, f: F) -> impl Parser<'a, I, U, E>;
 }
 
 impl<'a, T, I, O, E> HasMapWithSpan<'a, I, O, E> for T
-    where T: chumsky::Parser<'a, I, O, E>,
-          I: chumsky::input::Input<'a>,
-          E: chumsky::extra::ParserExtra<'a, I>
-    {
+where
+    T: chumsky::Parser<'a, I, O, E>,
+    I: chumsky::input::Input<'a>,
+    E: chumsky::extra::ParserExtra<'a, I>,
+{
     fn map_with_span<U, F: Fn(O, I::Span) -> U>(self, f: F) -> impl Parser<'a, I, U, E> {
         self.map_with(move |x, e| f(x, e.span()))
     }
@@ -255,6 +257,7 @@ fn chord<'a>() -> impl Parser<'a, &'a str, Chord<'a>, extra::Err<Rich<'a, char>>
 }
 
 fn key<'a>() -> impl Parser<'a, &'a str, Key<'a>, extra::Err<Rich<'a, char>>> {
+    let i = int(10).try_map(|s: &str, span| s.parse().map_err(|e| Rich::custom(span, e)));
     let p = plainkey().map(Key::Plain);
     let mt = plainkey()
         .then(
@@ -262,10 +265,25 @@ fn key<'a>() -> impl Parser<'a, &'a str, Key<'a>, extra::Err<Rich<'a, char>>> {
                 .map(ModTapType::OnOtherKey)
                 .or(token::<"@">().map(ModTapType::Permissive)),
         )
+        .then(
+            token::<"[">()
+                .then(i)
+                .then(token::<"]">())
+                .map_with_span(
+                    |((left_square, timeout), right_square), span| ModTapTimeout {
+                        left_square,
+                        timeout,
+                        right_square,
+                        span: span.into(),
+                    },
+                )
+                .or_not(),
+        )
         .then(plainkey())
-        .map_with_span(|((tap, at), hold), span| Key::ModTap {
+        .map_with_span(|(((tap, at), timeout), hold), span| Key::ModTap {
             tap,
             at,
+            timeout,
             hold,
             span: span.into(),
         });

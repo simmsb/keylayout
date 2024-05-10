@@ -116,6 +116,7 @@ pub fn emit<'a>(
             Key::ModTap {
                 tap,
                 at: _,
+                timeout: _,
                 hold,
                 span: _,
             } => Ok(KeySpec {

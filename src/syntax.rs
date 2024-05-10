@@ -26,10 +26,7 @@ impl Span {
     }
 
     pub fn end_singleton(self) -> Self {
-        Self(SourceSpan::new(
-            (self.0.offset() + self.0.len()).into(),
-            0,
-        ))
+        Self(SourceSpan::new((self.0.offset() + self.0.len()).into(), 0))
     }
 
     pub fn len(&self) -> usize {
@@ -630,11 +627,29 @@ impl ModTapType {
 }
 
 #[derive(Debug, debug3::Debug, Clone, PartialEq, Eq)]
+pub struct ModTapTimeout<S = Span> {
+    pub left_square: Token<"[", S>,
+    pub timeout: u32,
+    pub right_square: Token<"]", S>,
+    pub span: S,
+}
+
+impl ModTapTimeout {
+    pub fn to_doc(&self) -> RcDoc {
+        self.left_square
+            .to_doc()
+            .append(RcDoc::text(self.timeout.to_string()))
+            .append(self.right_square.to_doc())
+    }
+}
+
+#[derive(Debug, debug3::Debug, Clone, PartialEq, Eq)]
 pub enum Key<'a, S = Span> {
     Plain(PlainKey<'a, S>),
     ModTap {
         tap: PlainKey<'a, S>,
         at: ModTapType<S>,
+        timeout: Option<ModTapTimeout<S>>,
         hold: PlainKey<'a, S>,
         span: S,
     },
@@ -647,9 +662,14 @@ impl<'a> Key<'a> {
             Key::ModTap {
                 tap,
                 at,
+                timeout,
                 hold,
                 span: _,
-            } => tap.to_doc().append(at.to_doc()).append(hold.to_doc()),
+            } => tap
+                .to_doc()
+                .append(at.to_doc())
+                .append(timeout.as_ref().map_or(RcDoc::nil(), ModTapTimeout::to_doc))
+                .append(hold.to_doc()),
         };
 
         if let Some(spacing) = spacing {

@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use crate::{
     errors::AppError,
     process::{LayerMeta, MatrixPosition, Metadata, ResolvedChord},
-    syntax::{File, Key, PlainKey, ModTapType},
+    syntax::{File, Key, ModTapType, PlainKey},
 };
 
 #[derive(Clone, Debug)]
@@ -87,6 +87,7 @@ impl<'a> Emit<'a> {
             Key::ModTap {
                 tap,
                 at,
+                timeout,
                 hold,
                 span: _,
             } => {
@@ -107,7 +108,10 @@ impl<'a> Emit<'a> {
         config: ::keyberon::action::HoldTapConfig::{},
         tap_hold_interval: {},
     }})"#,
-                    self.option_d("hold_tap_timeout", "400"),
+                    timeout.as_ref().map_or_else(
+                        || self.option_d("hold_tap_timeout", "400").to_string(),
+                        |t| t.timeout.to_string()
+                    ),
                     config,
                     self.option_d("hold_tap_interval", "200")
                 );
