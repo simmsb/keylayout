@@ -23,6 +23,17 @@ pub enum AppError {
         other_span: Span,
     },
 
+    #[error("Impossible key location")]
+    #[diagnostic(
+        code(impossible_key_location),
+        help("The physical layout has no space for this key")
+    )]
+    ImpossibleKeyLocation {
+        #[label(primary, "This key")]
+        key: Span,
+    },
+
+
     #[error("Badly positioned chord")]
     #[diagnostic(
         code(bad_chord_positioning),

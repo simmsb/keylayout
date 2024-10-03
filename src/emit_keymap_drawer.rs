@@ -20,7 +20,7 @@ struct Spec {
 #[derive(Debug, serde::Serialize)]
 struct LayoutSpec {
     qmk_keyboard: String,
-    qmk_layout: String,
+    qmk_layout: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -168,7 +168,7 @@ pub fn emit<'a>(
 
     let layout_spec = LayoutSpec {
         qmk_keyboard: get_option("qmk_keyboard")?.to_string(),
-        qmk_layout: get_option("qmk_layout")?.to_string(),
+        qmk_layout: get_option("qmk_layout").ok().map(|x| x.to_string()),
     };
 
     let spec = Spec {

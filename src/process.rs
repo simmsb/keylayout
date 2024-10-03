@@ -261,7 +261,9 @@ impl<'a> LayerMeta<'a> {
             while let Some(item) = item_iter.next() {
                 match item {
                     crate::syntax::KeyOrChord::Key(key) => {
-                        let physical_pos = *layout_meta.layout_to_phys.get(&(x, y)).unwrap();
+                        let Some(&physical_pos) = layout_meta.layout_to_phys.get(&(x, y)) else {
+                            return Err(AppError::ImpossibleKeyLocation { key: item.span() }.into());
+                        };
                         let KeyAt::Located(matrix_pos) =
                             *layout_meta.layout_to_matrix.get(&(x, y)).unwrap()
                         else {
@@ -283,12 +285,12 @@ impl<'a> LayerMeta<'a> {
                             let Some(KeyAt::Located(left)) =
                                 layout_meta.layout_to_matrix.get(&(x - 1, y)).copied()
                             else {
-                                panic!("Tried to get {:?}", (x, y));
+                                return Err(AppError::ImpossibleKeyLocation { key: item.span() }.into());
                             };
                             let Some(KeyAt::Located(right)) =
                                 layout_meta.layout_to_matrix.get(&(x, y)).copied()
                             else {
-                                panic!("Tried to get {:?}", (x, y));
+                                return Err(AppError::ImpossibleKeyLocation { key: item.span() }.into());
                             };
 
                             let left_layout = (x - 1, y);

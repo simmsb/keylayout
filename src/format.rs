@@ -48,7 +48,9 @@ impl<'a> Format<'a> {
 
             for (x, y) in (0..meta.layout.width).cartesian_product(0..meta.layout.height) {
                 if let Some(layout_pos) = phys_to_layout.get(&(x, y)) {
-                    let key_node = layout_to_key.get(layout_pos).unwrap();
+                    let Some(key_node) = layout_to_key.get(layout_pos) else {
+                        panic!("Key does not exist on layout: {:?} of layer {}", layout_pos, layer.name);
+                    };
 
                     let spacing = &mut column_widths[x as usize];
 
