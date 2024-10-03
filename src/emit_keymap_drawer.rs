@@ -19,7 +19,11 @@ struct Spec {
 
 #[derive(Debug, serde::Serialize)]
 struct LayoutSpec {
-    qmk_keyboard: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    qmk_info_json: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    qmk_keyboard: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     qmk_layout: Option<String>,
 }
 
@@ -167,7 +171,8 @@ pub fn emit<'a>(
     };
 
     let layout_spec = LayoutSpec {
-        qmk_keyboard: get_option("qmk_keyboard")?.to_string(),
+        qmk_keyboard: get_option("qmk_keyboard").ok().map(|x| x.to_string()),
+        qmk_info_json: get_option("qmk_info_json").ok().map(|x| x.to_string()),
         qmk_layout: get_option("qmk_layout").ok().map(|x| x.to_string()),
     };
 
